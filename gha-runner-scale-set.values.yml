@@ -1,0 +1,6 @@
+githubServerTLS:
+  certificateFrom:
+    configMapKeyRef:
+      name: mitmproxy-ca-cert
+      key: ca.crt
+  runnerMountPath: /usr/local/share/ca-certificates/

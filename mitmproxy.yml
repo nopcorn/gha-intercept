@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mitmproxy
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mitmproxy
+  namespace: mitmproxy
+  labels:
+    app: mitmproxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mitmproxy
+  template:
+    metadata:
+      labels:
+        app: mitmproxy
+    spec:
+      containers:
+      - name: mitmproxy
+        image: mitmproxy/mitmproxy:latest
+        command: ["mitmweb", "--web-host", "0.0.0.0", "--verbose"]
+        env:
+          - name: PYTHONUNBUFFERED # immediate log output.
+            value: "1"
+          - name: HOME
+            value: "/tmp"
+        ports:
+          - containerPort: 8080
+            name: proxy
+            protocol: TCP
+          - containerPort: 8081
+            name: web
+            protocol: TCP
+---
+# Service for internal cluster communication on port 8080
+apiVersion: v1
+kind: Service
+metadata:
+  name: mitmproxy
+  namespace: mitmproxy
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: proxy
+  selector:
+    app: mitmproxy
+---
+# Service for external access on port 8081 via NodePort
+apiVersion: v1
+kind: Service
+metadata:
+  name: mitmproxy-web
+  namespace: mitmproxy
+spec:
+  type: NodePort
+  selector:
+    app: mitmproxy
+  ports:
+    - port: 8081
+      targetPort: 8081
+      protocol: TCP
+      name: web
+      nodePort: 32081
